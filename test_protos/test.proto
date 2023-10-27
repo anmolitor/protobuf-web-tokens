@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package test;
+
+import "google/protobuf/timestamp.proto";
+
+message Simple { string some_claim = 2; }
+
+message Complex {
+  int64 user_id = 1;
+  Nested nested = 2;
+  string user_name = 3;
+  string email = 4;
+  repeated Role roles = 5;
+}
+
+message Nested {
+  int64 team_id = 1;
+  string team_name = 2;
+}
+
+enum Role {
+  ReadFeatureFoo = 0;
+  WriteFeatureFoo = 1;
+  ReadFeatureBar = 2;
+  WriteFeatureBar = 3;
+}

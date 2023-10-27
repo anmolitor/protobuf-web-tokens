@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package pwt;
+
+import "google/protobuf/timestamp.proto";
+
+message Token {
+  google.protobuf.Timestamp valid_until = 1;
+  bytes claims = 2;
+}

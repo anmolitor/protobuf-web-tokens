@@ -1,0 +1,17 @@
+{
+  "name": "protobuf-web-token",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "protoc": "protoc --elm_out=src pwt.proto google/protobuf/timestamp.proto"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "protoc-gen-elm": "^3.2.0"
+  }
+}
