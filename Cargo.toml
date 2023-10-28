@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 
-license = "BSD 3-Clause \"New\" or \"Revised\" License"
+license = "	BSD-3-Clause"
 description = "Create, verify and decode protobuf web tokens"
 homepage = "https://github.com/andreasewering/protobuf-web-tokens"
 documentation = "https://github.com/andreasewering/protobuf-web-tokens"
