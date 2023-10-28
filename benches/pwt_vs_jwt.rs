@@ -9,7 +9,7 @@ mod jwt;
 
 fn pwt_round_trip<T: Message + Default>(signer: &Signer, value: T) {
     let token = signer.sign(value, Duration::from_secs(100));
-    signer.verify::<T>(&token).unwrap();
+    signer.as_verifier().verify::<T>(&token).unwrap();
 }
 
 fn jwt_round_trip<T: Serialize + DeserializeOwned>(signer: &jwt::JwtSigner, claims: T) {
@@ -79,7 +79,7 @@ struct Simple {
 
 fn init_pwt_signer() -> Signer {
     use protobuf_web_token::ed25519::pkcs8::DecodePrivateKey;
-    let pem = std::fs::read("private.pem").unwrap();
+    let pem = std::fs::read("test_resources/private.pem").unwrap();
     let pem = String::from_utf8(pem).unwrap();
     let key = protobuf_web_token::ed25519::SigningKey::from_pkcs8_pem(&pem).unwrap();
     Signer::new(key)

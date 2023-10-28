@@ -29,7 +29,7 @@ fn unix_timestamp() -> usize {
 }
 
 pub fn init_jwt_signer() -> JwtSigner {
-    let pem = std::fs::read("private.pem").unwrap();
+    let pem = std::fs::read("test_resources/private.pem").unwrap();
     let signer = Eddsa.signer_from_pem(&pem).unwrap();
     let key_pair = Eddsa.key_pair_from_pem(&pem).unwrap();
     let jwk = key_pair.to_jwk_public_key();

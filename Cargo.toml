@@ -6,10 +6,12 @@ edition = "2021"
 
 license = "BSD 3-Clause \"New\" or \"Revised\" License"
 description = "Create, verify and decode protobuf web tokens"
-homepage = ""
-# documentation
-# repository
-# readme
+homepage = "https://github.com/andreasewering/protobuf-web-tokens"
+documentation = "https://github.com/andreasewering/protobuf-web-tokens"
+repository = "https://github.com/andreasewering/protobuf-web-tokens"
+readme = "README.md"
+keywords = ["protobuf", "web", "token"]
+categories = ["authentication", "encoding"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

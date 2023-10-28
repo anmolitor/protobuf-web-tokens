@@ -13,19 +13,27 @@ mod proto {
 }
 pub extern crate ed25519_dalek as ed25519;
 
+#[derive(Clone)]
 pub struct Signer {
     key: SigningKey,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Verifier {
     key: VerifyingKey,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TokenData<CLAIMS> {
-    valid_until: SystemTime,
-    claims: CLAIMS,
+    pub valid_until: SystemTime,
+    pub claims: CLAIMS,
 }
+
+struct Base64Claims<'a>(&'a str);
+
+struct Base64Signature<'a>(&'a str);
+
+struct BytesClaims(Vec<u8>);
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
@@ -35,6 +43,7 @@ pub enum Error {
     SignatureMismatch,
     ProtobufDecodeError,
     MissingValidUntil,
+    TokenExpired,
 }
 
 impl Signer {
@@ -42,7 +51,7 @@ impl Signer {
         Signer { key }
     }
 
-    pub fn create_verifier(&self) -> Verifier {
+    pub fn as_verifier(&self) -> Verifier {
         Verifier {
             key: self.key.verifying_key(),
         }
@@ -52,10 +61,6 @@ impl Signer {
         let proto_token = self.create_proto_token(data, valid_for);
         let (base64, signature) = self.sign_proto_token(proto_token);
         format!("{base64}.{signature}")
-    }
-
-    pub fn verify<CLAIMS: Message + Default>(&self, token: &str) -> Result<CLAIMS, Error> {
-        self.create_verifier().verify(token)
     }
 
     fn create_proto_token<T: Message>(&self, data: T, valid_for: Duration) -> proto::Token {
@@ -80,26 +85,87 @@ impl Verifier {
         Self { key }
     }
 
-    pub fn verify<CLAIMS: Message + Default>(&self, token: &str) -> Result<CLAIMS, Error> {
-        let (data, signature) = token.split_once('.').ok_or(Error::InvalidFormat)?;
-        let bytes = general_purpose::URL_SAFE_NO_PAD
-            .decode(data)
-            .map_err(|_| Error::InvalidBase64)?;
+    pub fn verify<CLAIMS: Message + Default>(
+        &self,
+        token: &str,
+    ) -> Result<TokenData<CLAIMS>, Error> {
+        let (claims, signature) = parse_token(token)?;
+        let bytes = claims.to_bytes()?;
+        self.verify_signature(&bytes, &signature)?;
+
+        let token_data = bytes.decode_metadata()?;
+        let claims =
+            CLAIMS::decode(token_data.claims.as_slice()).map_err(|_| Error::ProtobufDecodeError)?;
+        Ok(TokenData {
+            valid_until: token_data.valid_until,
+            claims,
+        })
+    }
+
+    pub fn verify_and_check_expiry<CLAIMS: Message + Default>(
+        &self,
+        token: &str,
+    ) -> Result<CLAIMS, Error> {
+        let (claims, signature) = parse_token(token)?;
+        let bytes = claims.to_bytes()?;
+        self.verify_signature(&bytes, &signature)?;
+
+        let token_data = bytes.decode_metadata()?;
+
+        let now = SystemTime::now();
+        if now > token_data.valid_until {
+            return Result::Err(Error::TokenExpired);
+        }
+
+        CLAIMS::decode(token_data.claims.as_slice()).map_err(|_| Error::ProtobufDecodeError)
+    }
+
+    fn verify_signature(
+        &self,
+        bytes: &BytesClaims,
+        signature: &Base64Signature,
+    ) -> Result<(), Error> {
         let signature = general_purpose::URL_SAFE_NO_PAD
-            .decode(signature)
+            .decode(signature.0)
             .map_err(|_| Error::InvalidBase64)?;
         let signature =
             Signature::from_slice(signature.as_slice()).map_err(|_| Error::InvalidSignature)?;
 
         self.key
-            .verify(&bytes, &signature)
+            .verify(&bytes.0, &signature)
             .map_err(|_| Error::SignatureMismatch)?;
-        let decoded_metadata =
-            proto::Token::decode(bytes.as_slice()).map_err(|_| Error::ProtobufDecodeError)?;
-        let decoded = CLAIMS::decode(decoded_metadata.claims.as_slice())
-            .map_err(|_| Error::ProtobufDecodeError)?;
-        Ok(decoded)
+        Ok(())
     }
+}
+
+impl<'a> Base64Claims<'a> {
+    pub fn to_bytes(&'a self) -> Result<BytesClaims, Error> {
+        general_purpose::URL_SAFE_NO_PAD
+            .decode(self.0)
+            .map(BytesClaims)
+            .map_err(|_| Error::InvalidBase64)
+    }
+}
+
+impl BytesClaims {
+    pub fn decode_metadata(&self) -> Result<TokenData<Vec<u8>>, Error> {
+        let token =
+            proto::Token::decode(self.0.as_slice()).map_err(|_| Error::ProtobufDecodeError)?;
+        let valid_until: SystemTime = token
+            .valid_until
+            .ok_or(Error::MissingValidUntil)?
+            .try_into()
+            .map_err(|_| Error::MissingValidUntil)?;
+        Ok(TokenData {
+            valid_until,
+            claims: token.claims,
+        })
+    }
+}
+
+fn parse_token(token: &str) -> Result<(Base64Claims<'_>, Base64Signature<'_>), Error> {
+    let (data, signature) = token.split_once('.').ok_or(Error::InvalidFormat)?;
+    Ok((Base64Claims(data), Base64Signature(signature)))
 }
 
 pub fn decode<CLAIMS: Message + Default>(token: &str) -> Result<TokenData<CLAIMS>, Error> {
@@ -143,7 +209,7 @@ mod tests {
     }
 
     fn init_signer() -> Signer {
-        let pem = std::fs::read("private.pem").unwrap();
+        let pem = std::fs::read("test_resources/private.pem").unwrap();
         let pem = String::from_utf8(pem).unwrap();
         let key = SigningKey::from_pkcs8_pem(&pem).unwrap();
         Signer { key }
@@ -156,7 +222,12 @@ mod tests {
             some_claim: "test contents".to_string(),
         };
         let pwt = pwt_signer.sign(simple.clone(), Duration::from_secs(5));
-        assert_eq!(pwt_signer.verify::<proto::Simple>(&pwt), Result::Ok(simple));
+        assert_eq!(
+            pwt_signer
+                .as_verifier()
+                .verify_and_check_expiry::<proto::Simple>(&pwt),
+            Result::Ok(simple)
+        );
     }
 
     #[test]
@@ -180,7 +251,9 @@ mod tests {
         let tampered_token = format!("{other_data}.{signature}");
 
         assert_eq!(
-            pwt_signer.verify::<proto::Simple>(&tampered_token),
+            pwt_signer
+                .as_verifier()
+                .verify::<proto::Simple>(&tampered_token),
             Result::Err(Error::SignatureMismatch)
         );
     }
@@ -189,7 +262,7 @@ mod tests {
     fn invalid_format() {
         let pwt_signer = init_signer();
         assert_eq!(
-            pwt_signer.verify::<()>("invalid"),
+            pwt_signer.as_verifier().verify::<()>("invalid"),
             Result::Err(Error::InvalidFormat)
         );
     }
@@ -198,7 +271,7 @@ mod tests {
     fn invalid_base64() {
         let pwt_signer = init_signer();
         assert_eq!(
-            pwt_signer.verify::<()>("invalid.base64"),
+            pwt_signer.as_verifier().verify::<()>("invalid.base64"),
             Result::Err(Error::InvalidBase64)
         );
     }
@@ -208,7 +281,9 @@ mod tests {
         let pwt_signer = init_signer();
         let base64 = general_purpose::URL_SAFE_NO_PAD.encode("base64");
         assert_eq!(
-            pwt_signer.verify::<()>(&format!("{base64}.{base64}")),
+            pwt_signer
+                .as_verifier()
+                .verify::<()>(&format!("{base64}.{base64}")),
             Result::Err(Error::InvalidSignature)
         );
     }
@@ -223,7 +298,7 @@ mod tests {
             Duration::from_secs(5),
         );
         assert_eq!(
-            pwt_signer.verify::<proto::Complex>(&pwt),
+            pwt_signer.as_verifier().verify::<proto::Complex>(&pwt),
             Result::Err(Error::ProtobufDecodeError)
         );
     }
