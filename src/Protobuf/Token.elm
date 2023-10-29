@@ -1,4 +1,16 @@
-module Protobuf.Token exposing (Error(..), decode)
+module Protobuf.Token exposing
+    ( TokenData
+    , decode
+    , Error(..)
+    )
+
+{-| Decode Protobuf Web Tokens (PWT)
+
+@docs TokenData
+@docs decode
+@docs Error
+
+-}
 
 import Base64
 import Proto.Pwt
@@ -7,6 +19,8 @@ import Protobuf.Types.Int64
 import Time
 
 
+{-| The ways a token decoding can fail
+-}
 type Error
     = InvalidFormat
     | InvalidBase64
@@ -14,6 +28,8 @@ type Error
     | NoValidUntilField
 
 
+{-| Claims encoded in the token and some metadata
+-}
 type alias TokenData t =
     { validUntil : Time.Posix
     , claims : t
