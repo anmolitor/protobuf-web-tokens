@@ -8,7 +8,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 mod jwt;
 
 fn pwt_round_trip<T: Message + Default>(signer: &Signer, value: T) {
-    let token = signer.sign(value, Duration::from_secs(100));
+    let token = signer.sign(&value, Duration::from_secs(100));
     signer.as_verifier().verify::<T>(&token).unwrap();
 }
 

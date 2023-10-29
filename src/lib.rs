@@ -60,13 +60,13 @@ impl Signer {
         }
     }
 
-    pub fn sign<T: Message>(&self, data: T, valid_for: Duration) -> String {
+    pub fn sign<T: Message>(&self, data: &T, valid_for: Duration) -> String {
         let proto_token = self.create_proto_token(data, valid_for);
-        let (base64, signature) = self.sign_proto_token(proto_token);
+        let (base64, signature) = self.sign_proto_token(&proto_token);
         format!("{base64}.{signature}")
     }
 
-    fn create_proto_token<T: Message>(&self, data: T, valid_for: Duration) -> proto::Token {
+    fn create_proto_token<T: Message>(&self, data: &T, valid_for: Duration) -> proto::Token {
         let bytes = data.encode_to_vec();
         proto::Token {
             valid_until: Some((SystemTime::now() + valid_for).into()),
@@ -74,7 +74,7 @@ impl Signer {
         }
     }
 
-    fn sign_proto_token(&self, proto_token: proto::Token) -> (String, String) {
+    fn sign_proto_token(&self, proto_token: &proto::Token) -> (String, String) {
         let bytes = proto_token.encode_to_vec();
         let signature = self.key.sign(&bytes);
         let base64 = general_purpose::URL_SAFE_NO_PAD.encode(&bytes);
@@ -213,9 +213,7 @@ impl Display for Error {
             Error::MissingValidUntil => {
                 f.write_str("The data encoded in the token did not include an expiry time")
             }
-            Error::TokenExpired => f.write_str(
-                "The token is expired"
-            ),
+            Error::TokenExpired => f.write_str("The token is expired"),
         }
     }
 }
@@ -254,7 +252,7 @@ mod tests {
         let simple = proto::Simple {
             some_claim: "test contents".to_string(),
         };
-        let pwt = pwt_signer.sign(simple.clone(), Duration::from_secs(5));
+        let pwt = pwt_signer.sign(&simple, Duration::from_secs(5));
         assert_eq!(
             pwt_signer
                 .as_verifier()
@@ -267,19 +265,19 @@ mod tests {
     fn signature_is_verified_and_prevents_tampering() {
         let pwt_signer = init_signer();
         let proto_token = pwt_signer.create_proto_token(
-            proto::Simple {
+            &proto::Simple {
                 some_claim: "test contents".to_string(),
             },
             Duration::from_secs(5),
         );
-        let (_data, signature) = pwt_signer.sign_proto_token(proto_token);
+        let (_data, signature) = pwt_signer.sign_proto_token(&proto_token);
         let other_proto_token = pwt_signer.create_proto_token(
-            proto::Simple {
+            &proto::Simple {
                 some_claim: "tampered contents".to_string(),
             },
             Duration::from_secs(5),
         );
-        let (other_data, _) = pwt_signer.sign_proto_token(other_proto_token);
+        let (other_data, _) = pwt_signer.sign_proto_token(&other_proto_token);
 
         let tampered_token = format!("{other_data}.{signature}");
 
@@ -325,7 +323,7 @@ mod tests {
     fn protobuf_decode_mismatch() {
         let pwt_signer = init_signer();
         let pwt = pwt_signer.sign(
-            proto::Simple {
+            &proto::Simple {
                 some_claim: "test contents".to_string(),
             },
             Duration::from_secs(5),
@@ -342,7 +340,7 @@ mod tests {
         let pwt_signer = init_signer();
 
         let pwt = pwt_signer.sign(
-            proto::Simple {
+            &proto::Simple {
                 some_claim: "test contents".to_string(),
             },
             Duration::from_secs(300),
@@ -386,7 +384,7 @@ mod tests {
         let now = SystemTime::now();
 
         let pwt = pwt_signer.sign(
-            proto::Complex {
+            &proto::Complex {
                 email: "andreas.molitor@andrena.de".to_string(),
                 user_name: "Andreas Molitor".to_string(),
                 user_id: 123456789,
