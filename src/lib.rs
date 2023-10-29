@@ -1,4 +1,7 @@
-use std::time::{Duration, SystemTime};
+use std::{
+    fmt::Display,
+    time::{Duration, SystemTime},
+};
 
 use ed25519_dalek::{Signature, Signer as _, SigningKey, Verifier as _, VerifyingKey};
 use prost::Message;
@@ -188,6 +191,36 @@ pub fn decode<CLAIMS: Message + Default>(token: &str) -> Result<TokenData<CLAIMS
         claims,
     })
 }
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::InvalidFormat => f.write_str(
+                "Invalid Token Format. Expected two string segments seperated by a dot ('.')",
+            ),
+            Error::InvalidBase64 => f.write_str(
+                "A part of the token was not valid base64 (A-Z, a-z, 0-9, -, _, no padding)",
+            ),
+            Error::InvalidSignature => {
+                f.write_str("The signature is not a valid Ed25519 signature")
+            }
+            Error::SignatureMismatch => f.write_str(
+                "The signature does not match the given data (probably the token was manipulated)",
+            ),
+            Error::ProtobufDecodeError => f.write_str(
+                "The data encoded in the token did not match the expected protobuf format.",
+            ),
+            Error::MissingValidUntil => {
+                f.write_str("The data encoded in the token did not include an expiry time")
+            }
+            Error::TokenExpired => f.write_str(
+                "The token is expired"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
 
 #[cfg(test)]
 mod tests {
