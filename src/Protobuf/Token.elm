@@ -12,7 +12,7 @@ module Protobuf.Token exposing
 
 -}
 
-import Base64
+import Base64UrlSafe
 import Proto.Pwt
 import Protobuf.Decode
 import Protobuf.Types.Int64
@@ -42,7 +42,7 @@ decode : Protobuf.Decode.Decoder t -> String -> Result Error (TokenData t)
 decode decoder token =
     let
         toBytes =
-            Base64.toBytes >> Result.fromMaybe InvalidBase64
+            Base64UrlSafe.toBytes >> Result.fromMaybe InvalidBase64
 
         decodePwt =
             Protobuf.Decode.decode Proto.Pwt.decodeToken

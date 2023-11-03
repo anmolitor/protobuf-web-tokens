@@ -77,8 +77,8 @@ impl Signer {
     fn sign_proto_token(&self, proto_token: &proto::Token) -> (String, String) {
         let bytes = proto_token.encode_to_vec();
         let signature = self.key.sign(&bytes);
-        let base64 = general_purpose::STANDARD_NO_PAD.encode(&bytes);
-        let signature = general_purpose::STANDARD_NO_PAD.encode(signature.to_bytes());
+        let base64 = general_purpose::URL_SAFE_NO_PAD.encode(&bytes);
+        let signature = general_purpose::URL_SAFE_NO_PAD.encode(signature.to_bytes());
         (base64, signature)
     }
 }
@@ -128,7 +128,7 @@ impl Verifier {
         bytes: &BytesClaims,
         signature: &Base64Signature,
     ) -> Result<(), Error> {
-        let signature = general_purpose::STANDARD_NO_PAD
+        let signature = general_purpose::URL_SAFE_NO_PAD
             .decode(signature.0)
             .map_err(|_| Error::InvalidBase64)?;
         let signature =
@@ -143,7 +143,7 @@ impl Verifier {
 
 impl<'a> Base64Claims<'a> {
     pub fn to_bytes(&'a self) -> Result<BytesClaims, Error> {
-        general_purpose::STANDARD_NO_PAD
+        general_purpose::URL_SAFE_NO_PAD
             .decode(self.0)
             .map(BytesClaims)
             .map_err(|_| Error::InvalidBase64)
@@ -173,7 +173,7 @@ fn parse_token(token: &str) -> Result<(Base64Claims<'_>, Base64Signature<'_>), E
 
 pub fn decode<CLAIMS: Message + Default>(token: &str) -> Result<TokenData<CLAIMS>, Error> {
     let (data, _signature) = token.split_once('.').ok_or(Error::InvalidFormat)?;
-    let bytes = general_purpose::STANDARD_NO_PAD
+    let bytes = general_purpose::URL_SAFE_NO_PAD
         .decode(data)
         .map_err(|_| Error::InvalidBase64)?;
 
@@ -250,9 +250,10 @@ mod tests {
     fn happy_case() {
         let pwt_signer = init_signer();
         let simple = proto::Simple {
-            some_claim: "test contents".to_string(),
+            some_claim: "testabcd".to_string(),
         };
         let pwt = pwt_signer.sign(&simple, Duration::from_secs(5));
+        println!("{pwt}");
         assert_eq!(
             pwt_signer
                 .as_verifier()
@@ -310,7 +311,7 @@ mod tests {
     #[test]
     fn invalid_signature() {
         let pwt_signer = init_signer();
-        let base64 = general_purpose::STANDARD_NO_PAD.encode("base64");
+        let base64 = general_purpose::URL_SAFE_NO_PAD.encode("base64");
         assert_eq!(
             pwt_signer
                 .as_verifier()
@@ -425,5 +426,38 @@ mod tests {
             pwt_len * 2.0 < jwt_len,
             "{pwt} was not small enough in comparison to {jwt}"
         );
+    }
+
+    #[test]
+    #[ignore] // generate only if specifically requested (with cargo test -- --ignored)
+    fn generate_fuzz_outputs() -> Result<(), Box<dyn std::error::Error>> {
+        use rand::distributions::{Alphanumeric, DistString};
+
+        let pwt_signer = init_signer();
+        let mut fuzz_output = Vec::new();
+
+        for i in 1..100 {
+            let random_string = Alphanumeric.sample_string(&mut rand::thread_rng(), i);
+            let jwt = pwt_signer.sign(
+                &proto::Simple {
+                    some_claim: random_string.clone(),
+                },
+                Duration::from_secs(500),
+            );
+            let data: TokenData<proto::Simple> = pwt_signer.as_verifier().verify(&jwt)?;
+            let timestamp = data
+                .valid_until
+                .duration_since(SystemTime::UNIX_EPOCH)?
+                .as_secs();
+            let json = serde_json::json!({
+                "input": random_string,
+                "output": jwt,
+                "timestamp": timestamp
+            });
+            fuzz_output.push(json);
+        }
+        let file_contents = serde_json::to_string_pretty(&fuzz_output)?;
+        std::fs::write(format!("fuzz/rust.json"), file_contents)?;
+        Ok(())
     }
 }
