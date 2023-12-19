@@ -1,9 +1,9 @@
 {
   "type": "package",
-  "name": "andreasewering/protobuf-web-tokens",
+  "name": "anmolitor/protobuf-web-tokens",
   "summary": "Decode protobuf web tokens",
   "license": "MIT",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "exposed-modules": ["Protobuf.Token"],
   "elm-version": "0.19.0 <= v < 0.20.0",
   "dependencies": {
