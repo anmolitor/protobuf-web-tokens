@@ -4,6 +4,9 @@ Collection of libraries for different languages to implement signing/verificatio
 The approach is similar to the one used in [JWT](https://jwt.io/introduction) (Json Web Token).
 The rest of this README assumes that you are familiar what JWTs are used for.
 
+Elm note:
+** MOVED TO https://package.elm-lang.org/packages/anmolitor/protobuf-web-tokens/latest/ **
+
 ## What is suboptimal with JWTs
 
 The JSON format is rather inefficient to transfer data with in comparison to a compact binary encoding such as [Protocol Buffers](https://protobuf.dev/).
