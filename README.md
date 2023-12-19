@@ -30,7 +30,7 @@ The token will also include standardized metadata which right now is just one fi
 
 We generate the bindings for the languages using libraries or protoc plugins. For the currently supported languages these are:
 - [prost](https://github.com/tokio-rs/prost) for Rust
-- [protoc-gen-elm](https://github.com/andreasewering/protoc-gen-elm) for Elm
+- [protoc-gen-elm](https://github.com/anmolitor/protoc-gen-elm) for Elm
 
 Then the authorization server can use the `sign` method to sign an object which precisely matches the shape you defined in your `.proto` file and the client or other servers can use `verify` or `decode` to read the contents.
 
