@@ -25,7 +25,7 @@ import Time
 type Error
     = InvalidFormat
     | InvalidBase64
-    | InvalidBytes { messageName : String }
+    | InvalidBytes
     | NoValidUntilField
 
 
@@ -60,7 +60,7 @@ decode decoder token =
 decodeBytes : Protobuf.Decode.Decoder t -> Bytes -> Result Error (TokenData t)
 decodeBytes decoder bytes =
     Protobuf.Decode.decode Proto.Pwt.decodeSignedToken bytes
-        |> Result.fromMaybe (InvalidBytes { messageName = "SignedToken" })
+        |> Result.fromMaybe InvalidBytes
         |> Result.andThen
             (\{ data } ->
                 decodePwt data
@@ -71,7 +71,7 @@ decodeBytes decoder bytes =
 decodePwt : Bytes -> Result Error Proto.Pwt.Token
 decodePwt =
     Protobuf.Decode.decode Proto.Pwt.decodeToken
-        >> Result.fromMaybe (InvalidBytes { messageName = "Token" })
+        >> Result.fromMaybe InvalidBytes
 
 
 decodeValidUntil : Maybe { a | nanos : Int, seconds : Protobuf.Types.Int64.Int64 } -> Result Error Time.Posix
@@ -93,7 +93,7 @@ decodeClaims decoder { validUntil, claims } =
     Result.map2 TokenData
         (decodeValidUntil validUntil)
         (Protobuf.Decode.decode decoder claims
-            |> Result.fromMaybe (InvalidBytes { messageName = "Claims" })
+            |> Result.fromMaybe InvalidBytes
         )
 
 
@@ -117,8 +117,8 @@ errorToString error =
         InvalidBase64 ->
             "Invalid Base64. Expected UrlSafeNoPad encoding"
 
-        InvalidBytes { messageName } ->
-            "Invalid Bytes. Tried to decode '" ++ messageName ++ "'"
+        InvalidBytes ->
+            "Invalid Bytes when trying to decode Protobuf message"
 
         NoValidUntilField ->
             "Timestamp is a required field, but was not set"
