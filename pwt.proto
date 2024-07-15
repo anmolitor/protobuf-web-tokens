@@ -8,3 +8,8 @@ message Token {
   google.protobuf.Timestamp valid_until = 1;
   bytes claims = 2;
 }
+
+message SignedToken {
+  bytes data = 1;
+  bytes signature = 2;
+}

@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package test;
 
-import "google/protobuf/timestamp.proto";
-
 message Simple { string some_claim = 2; }
 
 message Complex {

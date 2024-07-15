@@ -3,3 +3,4 @@
 /node_modules
 /fuzz
 /tests/Generated
+/tests/Proto

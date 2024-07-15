@@ -50,20 +50,37 @@ pub enum Error {
 }
 
 impl Signer {
+    /// Creates a new `Signer` from an ed25519 `SigningKey` (private key)
     pub fn new(key: SigningKey) -> Self {
         Signer { key }
     }
 
+    /// Creates a `Verifier` which can decode and verify PWT but can not sign them
     pub fn as_verifier(&self) -> Verifier {
         Verifier {
             key: self.key.verifying_key(),
         }
     }
 
+    /// Encodes a `Message` into a PWT. Uses the URL-safe string representation:
+    /// {data_in_base64}.{signature_of_encoded_bytes_in_base64}.
     pub fn sign<T: Message>(&self, data: &T, valid_for: Duration) -> String {
         let proto_token = self.create_proto_token(data, valid_for);
         let (base64, signature) = self.sign_proto_token(&proto_token);
         format!("{base64}.{signature}")
+    }
+
+    /// Encodes a `Message` into a PWT. Uses the compact byte representation via a protobuf message with
+    /// 2 fields (data and signature).
+    pub fn sign_to_bytes<T: Message>(&self, data: &T, valid_for: Duration) -> Vec<u8> {
+        let proto_token = self.create_proto_token(data, valid_for);
+        let bytes = proto_token.encode_to_vec();
+        let signature = self.key.sign(&bytes);
+        proto::SignedToken {
+            data: bytes,
+            signature: signature.to_bytes().to_vec(),
+        }
+        .encode_to_vec()
     }
 
     fn create_proto_token<T: Message>(&self, data: &T, valid_for: Duration) -> proto::Token {
@@ -84,6 +101,7 @@ impl Signer {
 }
 
 impl Verifier {
+    /// Creates a new `Verifier` from an ed25519 VerifyingKey
     pub fn new(key: VerifyingKey) -> Self {
         Self { key }
     }
@@ -105,6 +123,26 @@ impl Verifier {
         })
     }
 
+    pub fn verify_bytes<CLAIMS: Message + Default>(
+        &self,
+        token: &[u8],
+    ) -> Result<TokenData<CLAIMS>, Error> {
+        let proto::SignedToken { data, signature } =
+            proto::SignedToken::decode(token).map_err(|_| Error::ProtobufDecodeError)?;
+        let signature = Signature::from_slice(&signature).map_err(|_| Error::InvalidSignature)?;
+        self.key
+            .verify(&data, &signature)
+            .map_err(|_| Error::SignatureMismatch)?;
+
+        let token_data = BytesClaims(data).decode_metadata()?;
+        let claims =
+            CLAIMS::decode(token_data.claims.as_slice()).map_err(|_| Error::ProtobufDecodeError)?;
+        Ok(TokenData {
+            valid_until: token_data.valid_until,
+            claims,
+        })
+    }
+
     pub fn verify_and_check_expiry<CLAIMS: Message + Default>(
         &self,
         token: &str,
@@ -114,6 +152,27 @@ impl Verifier {
         self.verify_signature(&bytes, &signature)?;
 
         let token_data = bytes.decode_metadata()?;
+
+        let now = SystemTime::now();
+        if now > token_data.valid_until {
+            return Result::Err(Error::TokenExpired);
+        }
+
+        CLAIMS::decode(token_data.claims.as_slice()).map_err(|_| Error::ProtobufDecodeError)
+    }
+
+    pub fn verify_bytes_and_check_expiry<CLAIMS: Message + Default>(
+        &self,
+        token: &[u8],
+    ) -> Result<CLAIMS, Error> {
+        let proto::SignedToken { data, signature } =
+            proto::SignedToken::decode(token).map_err(|_| Error::ProtobufDecodeError)?;
+        let signature = Signature::from_slice(&signature).map_err(|_| Error::InvalidSignature)?;
+        self.key
+            .verify(&data, &signature)
+            .map_err(|_| Error::SignatureMismatch)?;
+
+        let token_data = BytesClaims(data).decode_metadata()?;
 
         let now = SystemTime::now();
         if now > token_data.valid_until {
@@ -253,11 +312,26 @@ mod tests {
             some_claim: "testabcd".to_string(),
         };
         let pwt = pwt_signer.sign(&simple, Duration::from_secs(5));
-        println!("{pwt}");
         assert_eq!(
             pwt_signer
                 .as_verifier()
                 .verify_and_check_expiry::<proto::Simple>(&pwt),
+            Result::Ok(simple)
+        );
+    }
+
+    #[test]
+    fn happy_case_bytes() {
+        let pwt_signer = init_signer();
+        let simple = proto::Simple {
+            some_claim: "testabcd".to_string(),
+        };
+        let pwt = pwt_signer.sign_to_bytes(&simple, Duration::from_secs(5));
+        println!("{}{pwt:?}", pwt.len());
+        assert_eq!(
+            pwt_signer
+                .as_verifier()
+                .verify_bytes_and_check_expiry::<proto::Simple>(&pwt),
             Result::Ok(simple)
         );
     }
@@ -286,6 +360,40 @@ mod tests {
             pwt_signer
                 .as_verifier()
                 .verify::<proto::Simple>(&tampered_token),
+            Result::Err(Error::SignatureMismatch)
+        );
+    }
+
+    #[test]
+    fn signature_is_verified_and_prevents_tampering_bytes() {
+        let pwt_signer = init_signer();
+        let proto_token = pwt_signer.create_proto_token(
+            &proto::Simple {
+                some_claim: "test contents".to_string(),
+            },
+            Duration::from_secs(5),
+        );
+
+        let data = proto_token.encode_to_vec();
+        let signature = pwt_signer.key.sign(&data);
+        let other_proto_token = pwt_signer.create_proto_token(
+            &proto::Simple {
+                some_claim: "tampered contents".to_string(),
+            },
+            Duration::from_secs(5),
+        );
+        let other_data = other_proto_token.encode_to_vec();
+
+        let tampered_token = super::proto::SignedToken {
+            data: other_data,
+            signature: signature.to_bytes().to_vec(),
+        }
+        .encode_to_vec();
+
+        assert_eq!(
+            pwt_signer
+                .as_verifier()
+                .verify_bytes::<proto::Simple>(&tampered_token),
             Result::Err(Error::SignatureMismatch)
         );
     }
@@ -438,26 +546,34 @@ mod tests {
 
         for i in 1..100 {
             let random_string = Alphanumeric.sample_string(&mut rand::thread_rng(), i);
-            let jwt = pwt_signer.sign(
+            let pwt = pwt_signer.sign(
                 &proto::Simple {
                     some_claim: random_string.clone(),
                 },
                 Duration::from_secs(500),
             );
-            let data: TokenData<proto::Simple> = pwt_signer.as_verifier().verify(&jwt)?;
+            let pwt_bytes = pwt_signer.sign_to_bytes(
+                &proto::Simple {
+                    some_claim: random_string.clone(),
+                },
+                Duration::from_secs(500),
+            );
+            let data: TokenData<proto::Simple> = pwt_signer.as_verifier().verify(&pwt)?;
             let timestamp = data
                 .valid_until
                 .duration_since(SystemTime::UNIX_EPOCH)?
                 .as_secs();
             let json = serde_json::json!({
                 "input": random_string,
-                "output": jwt,
+                "output": pwt,
+                "output_binary": pwt_bytes,
                 "timestamp": timestamp
             });
             fuzz_output.push(json);
         }
         let file_contents = serde_json::to_string_pretty(&fuzz_output)?;
-        std::fs::write(format!("fuzz/rust.json"), file_contents)?;
+        std::fs::create_dir_all("fuzz")?;
+        std::fs::write("fuzz/rust.json", file_contents)?;
         Ok(())
     }
 }
