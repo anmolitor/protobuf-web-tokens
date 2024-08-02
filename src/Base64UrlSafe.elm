@@ -3,7 +3,7 @@ module Base64UrlSafe exposing (toBytes)
 {-| Note: Code and comments are mostly copied from
 <https://github.com/danfishgold/base64-bytes/blob/1.1.0/src/Encode.elm>
 
-We need a different base64 encoding (\_ and - instead of + and ) and we do not want to pay the performance
+We need a different base64 encoding (\_ and - instead of + and /) and we do not want to pay the performance
 cost to first replace all characters accordingly to then use the lib.
 
 -}

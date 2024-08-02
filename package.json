@@ -2,18 +2,34 @@
   "name": "protobuf-web-token",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "protoc": "protoc --elm_out=src pwt.proto google/protobuf/timestamp.proto",
-    "test": "protoc --elm_out=tests test_resources/test.proto && node ./tests/gen-elm-test.mjs && elm-test"
+    "protoc": "protoc --elm_out=src --ts_out=src pwt.proto google/protobuf/timestamp.proto --proto_path=.",
+    "test": "protoc --elm_out=tests --ts_out=tests --proto_path=. test_resources/test.proto && node ./tests/gen-elm-test.mjs && elm-test",
+    "test:ts": "tsx --test tests/index.spec.ts",
+    "gen:test-cases": "tsx tests/gen-fuzz.ts",
+    "build:ts": "tsc src/index.ts"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@protobuf-ts/plugin": "^2.9.4",
+    "@types/node": "^22.0.2",
+    "@types/node-forge": "^1.3.11",
     "elm-test": "^0.19.1-revision12",
-    "protoc-gen-elm": "^4.0.3"
+    "node-forge": "^1.3.1",
+    "protoc-gen-elm": "^4.0.3",
+    "tsx": "^4.16.3",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "@protobuf-ts/runtime": "^2.9.4",
+    "tweetnacl": "^1.0.3"
   }
 }

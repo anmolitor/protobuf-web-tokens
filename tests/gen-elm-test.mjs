@@ -1,18 +1,26 @@
 import fs from "fs";
 
-const tests = JSON.parse(fs.readFileSync("fuzz/rust.json"));
+const tests = fs
+  .readdirSync("fuzz")
+  .filter((file) => file.endsWith(".json"))
+  .map((file) => [file, JSON.parse(fs.readFileSync(`fuzz/${file}`))])
+  .flatMap(([file, testCases]) =>
+    testCases.map((testCase) => ({ ...testCase, file }))
+  );
 
 const testCode = tests
-  .flatMap(({ input, output, output_binary, timestamp }, i) => {
+  .flatMap(({ file, input, output, output_binary, timestamp }, i) => {
     return [
-      `test "string ${i}" <| \\_ ->
+      `test "${file} string ${i}" <| \\_ ->
     Protobuf.Token.decode Proto.Test.decodeSimple "${output}"
       |> Expect.all [
         Result.map .claims >> Expect.equal (Ok { someClaim = "${input}" }),
         Result.map (.validUntil >> Time.posixToMillis >> (\\millis -> millis // 1000)) >> Expect.equal (Ok ${timestamp}) 
       ]`,
       `test "binary ${i}" <| \\_ ->
-    Protobuf.Token.decodeBytes Proto.Test.decodeSimple (encodeToBytes [${output_binary.join(', ')}])
+    Protobuf.Token.decodeBytes Proto.Test.decodeSimple (encodeToBytes [${output_binary.join(
+      ", "
+    )}])
       |> Expect.all [
         Result.map .claims >> Expect.equal (Ok { someClaim = "${input}" }),
         Result.map (.validUntil >> Time.posixToMillis >> (\\millis -> millis // 1000)) >> Expect.equal (Ok ${timestamp}) 
