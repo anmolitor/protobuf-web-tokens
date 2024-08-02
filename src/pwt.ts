@@ -10,82 +10,113 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Timestamp } from "./google/protobuf/timestamp";
+import { Timestamp } from "./google/protobuf/timestamp.js";
 /**
  * @generated from protobuf message pwt.Token
  */
 export interface Token {
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp valid_until = 1;
-     */
-    validUntil?: Timestamp;
-    /**
-     * @generated from protobuf field: bytes claims = 2;
-     */
-    claims: Uint8Array;
+  /**
+   * @generated from protobuf field: google.protobuf.Timestamp valid_until = 1;
+   */
+  validUntil?: Timestamp;
+  /**
+   * @generated from protobuf field: bytes claims = 2;
+   */
+  claims: Uint8Array;
 }
 /**
  * @generated from protobuf message pwt.SignedToken
  */
 export interface SignedToken {
-    /**
-     * @generated from protobuf field: bytes data = 1;
-     */
-    data: Uint8Array;
-    /**
-     * @generated from protobuf field: bytes signature = 2;
-     */
-    signature: Uint8Array;
+  /**
+   * @generated from protobuf field: bytes data = 1;
+   */
+  data: Uint8Array;
+  /**
+   * @generated from protobuf field: bytes signature = 2;
+   */
+  signature: Uint8Array;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class Token$Type extends MessageType<Token> {
-    constructor() {
-        super("pwt.Token", [
-            { no: 1, name: "valid_until", kind: "message", T: () => Timestamp },
-            { no: 2, name: "claims", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
-        ]);
+  constructor() {
+    super("pwt.Token", [
+      { no: 1, name: "valid_until", kind: "message", T: () => Timestamp },
+      { no: 2, name: "claims", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+    ]);
+  }
+  create(value?: PartialMessage<Token>): Token {
+    const message = globalThis.Object.create(this.messagePrototype!);
+    message.claims = new Uint8Array(0);
+    if (value !== undefined)
+      reflectionMergePartial<Token>(this, message, value);
+    return message;
+  }
+  internalBinaryRead(
+    reader: IBinaryReader,
+    length: number,
+    options: BinaryReadOptions,
+    target?: Token
+  ): Token {
+    let message = target ?? this.create(),
+      end = reader.pos + length;
+    while (reader.pos < end) {
+      let [fieldNo, wireType] = reader.tag();
+      switch (fieldNo) {
+        case /* google.protobuf.Timestamp valid_until */ 1:
+          message.validUntil = Timestamp.internalBinaryRead(
+            reader,
+            reader.uint32(),
+            options,
+            message.validUntil
+          );
+          break;
+        case /* bytes claims */ 2:
+          message.claims = reader.bytes();
+          break;
+        default:
+          let u = options.readUnknownField;
+          if (u === "throw")
+            throw new globalThis.Error(
+              `Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`
+            );
+          let d = reader.skip(wireType);
+          if (u !== false)
+            (u === true ? UnknownFieldHandler.onRead : u)(
+              this.typeName,
+              message,
+              fieldNo,
+              wireType,
+              d
+            );
+      }
     }
-    create(value?: PartialMessage<Token>): Token {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.claims = new Uint8Array(0);
-        if (value !== undefined)
-            reflectionMergePartial<Token>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: Token): Token {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* google.protobuf.Timestamp valid_until */ 1:
-                    message.validUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.validUntil);
-                    break;
-                case /* bytes claims */ 2:
-                    message.claims = reader.bytes();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: Token, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* google.protobuf.Timestamp valid_until = 1; */
-        if (message.validUntil)
-            Timestamp.internalBinaryWrite(message.validUntil, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* bytes claims = 2; */
-        if (message.claims.length)
-            writer.tag(2, WireType.LengthDelimited).bytes(message.claims);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
+    return message;
+  }
+  internalBinaryWrite(
+    message: Token,
+    writer: IBinaryWriter,
+    options: BinaryWriteOptions
+  ): IBinaryWriter {
+    /* google.protobuf.Timestamp valid_until = 1; */
+    if (message.validUntil)
+      Timestamp.internalBinaryWrite(
+        message.validUntil,
+        writer.tag(1, WireType.LengthDelimited).fork(),
+        options
+      ).join();
+    /* bytes claims = 2; */
+    if (message.claims.length)
+      writer.tag(2, WireType.LengthDelimited).bytes(message.claims);
+    let u = options.writeUnknownFields;
+    if (u !== false)
+      (u == true ? UnknownFieldHandler.onWrite : u)(
+        this.typeName,
+        message,
+        writer
+      );
+    return writer;
+  }
 }
 /**
  * @generated MessageType for protobuf message pwt.Token
@@ -93,54 +124,76 @@ class Token$Type extends MessageType<Token> {
 export const Token = new Token$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SignedToken$Type extends MessageType<SignedToken> {
-    constructor() {
-        super("pwt.SignedToken", [
-            { no: 1, name: "data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 2, name: "signature", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
-        ]);
+  constructor() {
+    super("pwt.SignedToken", [
+      { no: 1, name: "data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+      { no: 2, name: "signature", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+    ]);
+  }
+  create(value?: PartialMessage<SignedToken>): SignedToken {
+    const message = globalThis.Object.create(this.messagePrototype!);
+    message.data = new Uint8Array(0);
+    message.signature = new Uint8Array(0);
+    if (value !== undefined)
+      reflectionMergePartial<SignedToken>(this, message, value);
+    return message;
+  }
+  internalBinaryRead(
+    reader: IBinaryReader,
+    length: number,
+    options: BinaryReadOptions,
+    target?: SignedToken
+  ): SignedToken {
+    let message = target ?? this.create(),
+      end = reader.pos + length;
+    while (reader.pos < end) {
+      let [fieldNo, wireType] = reader.tag();
+      switch (fieldNo) {
+        case /* bytes data */ 1:
+          message.data = reader.bytes();
+          break;
+        case /* bytes signature */ 2:
+          message.signature = reader.bytes();
+          break;
+        default:
+          let u = options.readUnknownField;
+          if (u === "throw")
+            throw new globalThis.Error(
+              `Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`
+            );
+          let d = reader.skip(wireType);
+          if (u !== false)
+            (u === true ? UnknownFieldHandler.onRead : u)(
+              this.typeName,
+              message,
+              fieldNo,
+              wireType,
+              d
+            );
+      }
     }
-    create(value?: PartialMessage<SignedToken>): SignedToken {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.data = new Uint8Array(0);
-        message.signature = new Uint8Array(0);
-        if (value !== undefined)
-            reflectionMergePartial<SignedToken>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SignedToken): SignedToken {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bytes data */ 1:
-                    message.data = reader.bytes();
-                    break;
-                case /* bytes signature */ 2:
-                    message.signature = reader.bytes();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SignedToken, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bytes data = 1; */
-        if (message.data.length)
-            writer.tag(1, WireType.LengthDelimited).bytes(message.data);
-        /* bytes signature = 2; */
-        if (message.signature.length)
-            writer.tag(2, WireType.LengthDelimited).bytes(message.signature);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
+    return message;
+  }
+  internalBinaryWrite(
+    message: SignedToken,
+    writer: IBinaryWriter,
+    options: BinaryWriteOptions
+  ): IBinaryWriter {
+    /* bytes data = 1; */
+    if (message.data.length)
+      writer.tag(1, WireType.LengthDelimited).bytes(message.data);
+    /* bytes signature = 2; */
+    if (message.signature.length)
+      writer.tag(2, WireType.LengthDelimited).bytes(message.signature);
+    let u = options.writeUnknownFields;
+    if (u !== false)
+      (u == true ? UnknownFieldHandler.onWrite : u)(
+        this.typeName,
+        message,
+        writer
+      );
+    return writer;
+  }
 }
 /**
  * @generated MessageType for protobuf message pwt.SignedToken

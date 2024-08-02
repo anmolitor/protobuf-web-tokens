@@ -4,3 +4,4 @@
 /fuzz
 /tests/Generated
 /tests/Proto
+/dist

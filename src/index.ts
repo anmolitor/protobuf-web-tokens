@@ -1,6 +1,6 @@
 import { base64decode, base64encode, IMessageType } from "@protobuf-ts/runtime";
-import { SignedToken, Token } from "./pwt";
-import { Timestamp } from "./google/protobuf/timestamp";
+import { SignedToken, Token } from "./pwt.js";
+import { Timestamp } from "./google/protobuf/timestamp.js";
 import nacl from "tweetnacl";
 
 export interface TokenData<T> {

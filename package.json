@@ -8,12 +8,15 @@
   "directories": {
     "test": "tests"
   },
+  "files": [
+    "dist/**"
+  ],
   "scripts": {
     "protoc": "protoc --elm_out=src --ts_out=src pwt.proto google/protobuf/timestamp.proto --proto_path=.",
     "test": "protoc --elm_out=tests --ts_out=tests --proto_path=. test_resources/test.proto && node ./tests/gen-elm-test.mjs && elm-test",
     "test:ts": "tsx --test tests/index.spec.ts",
     "gen:test-cases": "tsx tests/gen-fuzz.ts",
-    "build:ts": "tsc src/index.ts"
+    "build:ts": "tsc"
   },
   "author": "",
   "license": "ISC",
