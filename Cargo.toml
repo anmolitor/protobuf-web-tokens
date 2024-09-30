@@ -19,13 +19,13 @@ categories = ["authentication", "encoding"]
 [lib]
 
 [dependencies]
-prost = "0.12"
-ed25519-dalek = { version = "2.0", features = ["pem"] }
-base64 = "0.21"
-prost-types = "0.12"
+prost = "0.13"
+ed25519-dalek = { version = "2.1", features = ["pem"] }
+base64 = "0.22"
+prost-types = "0.13"
 
 [build-dependencies]
-prost-build = "0.12"
+prost-build = "0.13"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
