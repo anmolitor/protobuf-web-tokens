@@ -1,11 +1,16 @@
 import { base64decode, base64encode, IMessageType } from "@protobuf-ts/runtime";
 import { SignedToken, Token } from "./pwt.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
-import nacl from "tweetnacl";
+import * as ed25519 from "@noble/ed25519";
 
 export interface TokenData<T> {
   claims: T;
   validUntil?: Date;
+}
+
+export interface KeyPair {
+  privateKey: Uint8Array;
+  publicKey: Uint8Array;
 }
 
 export class Decoder<T extends object> {
@@ -30,26 +35,31 @@ export class Decoder<T extends object> {
 }
 
 export class Verifier<T extends object> extends Decoder<T> {
-  constructor(codec: IMessageType<T>, private readonly publicKey: Uint8Array) {
+  #publicKey: Uint8Array;
+  constructor(codec: IMessageType<T>, publicKey: Uint8Array) {
     super(codec);
+    this.#publicKey = publicKey;
   }
 
-  verify(token: string): TokenData<T> {
+  async verify(token: string): Promise<TokenData<T>> {
     const [base64Data, base64Signature] = token.split(".");
     const data = base64decode(base64Data);
     const signature = base64decode(base64Signature);
-    if (!nacl.sign.detached.verify(data, signature, this.publicKey)) {
+
+    const isValid = await ed25519.verifyAsync(signature, data, this.#publicKey);
+    if (!isValid) {
       throw new Error("Invalid signature!");
     }
 
     return this.fromBinaryData(data);
   }
 
-  verifyAndCheckExpiry(token: string): T {
+  async verifyAndCheckExpiry(token: string): Promise<T> {
     const [base64Data, base64Signature] = token.split(".");
     const data = base64decode(base64Data);
     const signature = base64decode(base64Signature);
-    if (!nacl.sign.detached.verify(data, signature, this.publicKey)) {
+    const isValid = await ed25519.verifyAsync(signature, data, this.#publicKey);
+    if (!isValid) {
       throw new Error("Invalid signature!");
     }
     const tokenData = this.fromBinaryData(data);
@@ -61,31 +71,36 @@ export class Verifier<T extends object> extends Decoder<T> {
 }
 
 export class Signer<T extends object> extends Verifier<T> {
-  constructor(codec: IMessageType<T>, private readonly privateKey: Uint8Array) {
-    super(codec, privateKey.slice(privateKey.length - 32));
+  #privateKey: Uint8Array;
+  constructor(codec: IMessageType<T>, keyPair: KeyPair) {
+    super(codec, keyPair.publicKey);
+    this.#privateKey = keyPair.privateKey;
   }
 
-  sign(claims: T, validForMilliseconds: number): string {
+  async sign(claims: T, validForMilliseconds: number): Promise<string> {
     const encodedClaims = this.codec.toBinary(claims);
     const validUntil = new Date().getTime() + validForMilliseconds;
     const tokenData = Token.toBinary({
       claims: encodedClaims,
       validUntil: Timestamp.fromDate(new Date(validUntil)),
     });
-    const signature = nacl.sign.detached(tokenData, this.privateKey);
+    const signature = await ed25519.signAsync(tokenData, this.#privateKey);
     return (
       urlSafeBase64Encode(tokenData) + "." + urlSafeBase64Encode(signature)
     );
   }
 
-  signToBytes(claims: T, validForMilliseconds: number): Uint8Array {
+  async signToBytes(
+    claims: T,
+    validForMilliseconds: number
+  ): Promise<Uint8Array> {
     const encodedClaims = this.codec.toBinary(claims);
     const validUntil = new Date().getTime() + validForMilliseconds;
     const data = Token.toBinary({
       claims: encodedClaims,
       validUntil: Timestamp.fromDate(new Date(validUntil)),
     });
-    const signature = nacl.sign.detached(data, this.privateKey);
+    const signature = await ed25519.signAsync(data, this.#privateKey);
     return SignedToken.toBinary({ signature, data });
   }
 }
