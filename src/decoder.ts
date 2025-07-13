@@ -17,6 +17,9 @@ export class Decoder<T extends object> {
     const tokenData = Token.fromBinary(data);
 
     const claims = this.codec.fromBinary(tokenData.claims);
+    if (!tokenData.validUntil) {
+      throw new Error("Token did not include expiry date");
+    }
     const validUntil =
       tokenData.validUntil && Timestamp.toDate(tokenData.validUntil);
 

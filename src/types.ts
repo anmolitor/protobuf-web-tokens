@@ -1,6 +1,6 @@
 export interface TokenData<T> {
   claims: T;
-  validUntil?: Date;
+  validUntil: Date;
 }
 
 export interface KeyPair {
