@@ -29,8 +29,16 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },
-  "dependencies": {
-    "@noble/ed25519": "^2.3.0",
-    "@protobuf-ts/runtime": "^2.11.1"
+  "peerDependencies": {
+    "@protobuf-ts/runtime": "^2.11.1",
+    "@noble/ed25519": "^2.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@noble/ed25519": {
+      "optional": true
+    },
+    "@protobuf-ts/runtime": {
+      "optional": false
+    }
   }
 }
