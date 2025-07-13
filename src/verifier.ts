@@ -1,7 +1,6 @@
 import { base64decode, IMessageType } from "@protobuf-ts/runtime";
 import { TokenData } from "./types.js";
 import { Decoder } from "./decoder.js";
-import * as ed25519 from "@noble/ed25519";
 
 export class Verifier<T extends object> extends Decoder<T> {
   #publicKey: Uint8Array;
@@ -15,7 +14,9 @@ export class Verifier<T extends object> extends Decoder<T> {
     const data = base64decode(base64Data);
     const signature = base64decode(base64Signature);
 
-    const isValid = await ed25519.verifyAsync(signature, data, this.#publicKey);
+    const isValid = await (
+      await import("@noble/ed25519")
+    ).verifyAsync(signature, data, this.#publicKey);
     if (!isValid) {
       throw new Error("Invalid signature!");
     }
@@ -27,7 +28,9 @@ export class Verifier<T extends object> extends Decoder<T> {
     const [base64Data, base64Signature] = token.split(".");
     const data = base64decode(base64Data);
     const signature = base64decode(base64Signature);
-    const isValid = await ed25519.verifyAsync(signature, data, this.#publicKey);
+    const isValid = await (
+      await import("@noble/ed25519")
+    ).verifyAsync(signature, data, this.#publicKey);
     if (!isValid) {
       throw new Error("Invalid signature!");
     }

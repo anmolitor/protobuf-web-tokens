@@ -1,5 +1,5 @@
-import { base64decode, base64encode, IMessageType } from "@protobuf-ts/runtime";
-import { SignedToken, Token } from "./pwt.js";
+import { base64decode,  IMessageType } from "@protobuf-ts/runtime";
+import { Token } from "./pwt.js";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { TokenData } from "./types.js";
 

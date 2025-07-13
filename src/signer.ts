@@ -1,4 +1,3 @@
-import * as ed25519 from "@noble/ed25519";
 import { base64encode, IMessageType } from "@protobuf-ts/runtime";
 import { Timestamp } from "./google/protobuf/timestamp.js";
 import { SignedToken, Token } from "./pwt.js";
@@ -19,7 +18,9 @@ export class Signer<T extends object> extends Verifier<T> {
       claims: encodedClaims,
       validUntil: Timestamp.fromDate(new Date(validUntil)),
     });
-    const signature = await ed25519.signAsync(tokenData, this.#privateKey);
+    const signature = await (
+      await import("@noble/ed25519")
+    ).signAsync(tokenData, this.#privateKey);
     return (
       urlSafeBase64Encode(tokenData) + "." + urlSafeBase64Encode(signature)
     );
@@ -35,7 +36,9 @@ export class Signer<T extends object> extends Verifier<T> {
       claims: encodedClaims,
       validUntil: Timestamp.fromDate(new Date(validUntil)),
     });
-    const signature = await ed25519.signAsync(data, this.#privateKey);
+    const signature = await (
+      await import("@noble/ed25519")
+    ).signAsync(data, this.#privateKey);
     return SignedToken.toBinary({ signature, data });
   }
 }
