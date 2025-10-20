@@ -539,13 +539,14 @@ mod tests {
     #[test]
     #[ignore] // generate only if specifically requested (with cargo test -- --ignored)
     fn generate_fuzz_outputs() -> Result<(), Box<dyn std::error::Error>> {
-        use rand::distributions::{Alphanumeric, DistString};
+        use rand::distr::SampleString as _;
+        use rand_distr::Alphanumeric;
 
         let pwt_signer = init_signer();
         let mut fuzz_output = Vec::new();
 
         for i in 1..100 {
-            let random_string = Alphanumeric.sample_string(&mut rand::thread_rng(), i);
+            let random_string = Alphanumeric.sample_string(&mut rand::rng(), i);
             let pwt = pwt_signer.sign(
                 &proto::Simple {
                     some_claim: random_string.clone(),

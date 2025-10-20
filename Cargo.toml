@@ -1,6 +1,6 @@
 [package]
 name = "protobuf-web-token"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2021"
 
 
@@ -19,20 +19,21 @@ categories = ["authentication", "encoding"]
 [lib]
 
 [dependencies]
-prost = "0.13"
-ed25519-dalek = { version = "2.1.1", features = ["pem"] }
+prost = "0.14.1"
+ed25519-dalek = { version = "2.2.0", features = ["pem"] }
 base64 = "0.22"
-prost-types = "0.13"
+prost-types = "0.14.1"
 
 [build-dependencies]
-prost-build = "0.13"
+prost-build = "0.14.1"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
-josekit = "0.10.0"
-serde = "1.0.214"
-serde_json = "1.0.132"
-rand = "0.8.5"
+criterion = { version = "0.7", features = ["html_reports"] }
+josekit = "0.10.3"
+serde = "1.0.228"
+serde_json = "1.0.145"
+rand = "0.9.2"
+rand_distr = "0.5.1"
 
 [[bench]]
 name = "pwt_vs_jwt"
